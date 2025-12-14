@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 import os
-from PIL import Image
 import piexif
+from PIL import Image
 
 # ==========================
 # Utility & helper
@@ -132,11 +132,15 @@ def auto_crop(input_path, output_path):
 
     h_img, w_img = img.shape[:2]
 
+    # Target output size
+    TARGET_SIZE = 1024
+
     # Deteksi papan
     board_rect = detect_board_smart(img)
     if board_rect is not None:
         x, y, w, h = board_rect
         direction = detect_chicken_direction(img, board_rect)
+
         margin_x = int(w * 0.1)
         margin_y = int(h * 0.2)
         margin_top = int(h * (0.4 if direction == 'top' else 0.25))
@@ -145,28 +149,47 @@ def auto_crop(input_path, output_path):
         y1 = max(0, y - margin_top)
         x2 = min(w_img, x + w + margin_x)
         y2 = min(h_img, y + h + margin_y)
+
         crop = img[y1:y2, x1:x2]
         print(f"✅ Detected board ({direction}) at {x},{y} {w}x{h}")
     else:
-        # Fallback ke tengah
+        # Fallback ke tengah (square)
         print(f"⚠️ Gagal deteksi papan: {os.path.basename(input_path)}")
+
         size = int(min(h_img, w_img) * 0.7)
         x1 = (w_img - size) // 2
         y1 = (h_img - size) // 2
-        crop = img[y1:y1+size, x1:x1+size]
 
-    # Resize 512x512
-    resized = cv2.resize(crop, (512, 512), interpolation=cv2.INTER_LANCZOS4)
+        crop = img[y1:y1 + size, x1:x1 + size]
+
+    # Resize ke 1024x1024 (high quality)
+    resized = cv2.resize(
+        crop,
+        (TARGET_SIZE, TARGET_SIZE),
+        interpolation=cv2.INTER_LANCZOS4
+    )
 
     # Simpan dengan metadata
     pil_image, exif_data = preserve_metadata(input_path, resized)
     if exif_data:
-        pil_image.save(output_path, 'JPEG', quality=95, exif=exif_data)
+        pil_image.save(
+            output_path,
+            'JPEG',
+            quality=95,
+            subsampling=0,
+            exif=exif_data
+        )
     else:
-        pil_image.save(output_path, 'JPEG', quality=95)
+        pil_image.save(
+            output_path,
+            'JPEG',
+            quality=95,
+            subsampling=0
+        )
 
-    print(f"💾 Saved: {os.path.basename(output_path)} (512x512)")
+    print(f"💾 Saved: {os.path.basename(output_path)} ({TARGET_SIZE}x{TARGET_SIZE})")
     print("---")
+
 
 
 # ==========================
