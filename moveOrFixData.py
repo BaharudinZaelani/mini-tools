@@ -7,8 +7,25 @@ from pathlib import Path
 # ======================
 base_dir = Path("./dataset")
 metadata_json = base_dir / "output" / "data.json"
-
 dataset_folders = ["training", "testing", "validation"]
+
+# ======================
+# SAVE METADATA TO JSON
+# ======================
+metadata_file = base_dir / "metadata.xlsx"
+output_json_file = output_json_dir / "data.json"
+
+if metadata_file.exists():
+    df = pd.read_excel(metadata_file)
+    df.to_json(
+        output_json_file,
+        orient="records",
+        indent=2,
+        force_ascii=False
+    )
+    print("✔ Metadata saved to JSON")
+else:
+    print("❌ metadata.xlsx not found")
 
 # ======================
 # LOAD METADATA
