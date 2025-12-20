@@ -47,7 +47,7 @@ def find_image_anywhere(image_name: str):
 
         for file in dir_path.iterdir():
             if file.is_file():
-                if file.stem.lower() == base_name:
+                if file.stem == base_name:
                     return file
 
     return None
