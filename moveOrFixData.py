@@ -62,14 +62,14 @@ for item in metadata:
     if not image_url or not target_type:
         continue
 
-    image_name = Path(image_url).stem
+    filename = image_url.replace("\\", "/").split("/")[-1]
     target_dir = base_dir / target_type
     target_dir.mkdir(exist_ok=True)
 
-    found_file = find_image_anywhere(image_name)
+    found_file = find_image_anywhere(filename)
 
     if not found_file:
-        print(f"❌ MISSING | {image_name}")
+        print(f"❌ MISSING | {filename}")
         missing += 1
         continue
 
