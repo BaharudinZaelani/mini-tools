@@ -38,16 +38,19 @@ with open(metadata_json, "r", encoding="utf-8") as f:
 # FIND IMAGE ANYWHERE
 # ======================
 def find_image_anywhere(image_name: str):
+    base_name = image_name.rsplit(".", 1)[0]
+
     for folder in dataset_folders:
         dir_path = base_dir / folder
         if not dir_path.exists():
             continue
 
-        matches = list(dir_path.glob(f"{image_name}.*"))
-        if matches:
-            return matches[0]  # ambil pertama
-    return None
+        for file in dir_path.iterdir():
+            if file.is_file():
+                if file.stem.lower() == base_name:
+                    return file
 
+    return None
 # ======================
 # PROCESS & MOVE
 # ======================
