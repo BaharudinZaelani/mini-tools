@@ -6,7 +6,7 @@ import pandas as pd
 # ======================
 # PATH SETUP
 # ======================
-base_dir = Path("./dataset")
+base_dir = Path("/content/ayam-auto-crop/dataset")
 metadata_json = base_dir / "output" / "data.json"
 dataset_folders = ["training", "testing", "validation"]
 
