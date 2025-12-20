@@ -13,7 +13,7 @@ dataset_folders = ["training", "testing", "validation"]
 # SAVE METADATA TO JSON
 # ======================
 metadata_file = base_dir / "metadata.xlsx"
-output_json_file = output_json_dir / "data.json"
+output_json_file = f"{base_dir}/output/data.json"
 
 if metadata_file.exists():
     df = pd.read_excel(metadata_file)
