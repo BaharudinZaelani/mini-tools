@@ -91,6 +91,7 @@ def find_image_anywhere(image_name: str):
 moved = 0
 already_ok = 0
 missing = 0
+wrong = 0
 
 for item in metadata:
     image_url = item.get("Image_URL")
@@ -121,10 +122,12 @@ for item in metadata:
         continue
 
     # pindahkan file
+    wrong_dir = base_dir / "wrong"
     destination = target_dir / found_file.name
-
     if destination.exists():
         logger.info(f"⚠️ SKIP (exists) | {destination}")
+        shutil.move(str(found_file), str(wrong_dir))
+        wrong += 1
         continue
 
     shutil.move(str(found_file), str(destination))
