@@ -5,3 +5,4 @@ piexif
 pandas
 openpyxl
 xlrd
+Image

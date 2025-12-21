@@ -1,14 +1,33 @@
 import json
 import shutil
-from pathlib import Path
+import logging
 import pandas as pd
+from pathlib import Path
+from PIL import Image
 
 # ======================
 # PATH SETUP
 # ======================
-base_dir = Path("/content/ayam-auto-crop/dataset")
+base_dir = Path("/content/mini-tools/dataset")
 metadata_json = base_dir / "output" / "data.json"
 dataset_folders = ["training", "testing", "validation"]
+dimension = 1024
+
+# ======================
+# LOGGING
+# ======================
+LOG_DIR = base_dir / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+log_file = LOG_DIR / "dataset_process.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[
+        logging.FileHandler(log_file, mode="w", encoding="utf-8"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # ======================
 # SAVE METADATA TO JSON
@@ -33,6 +52,18 @@ else:
 # ======================
 with open(metadata_json, "r", encoding="utf-8") as f:
     metadata = json.load(f)
+
+# ======================
+# CHECK IMAGE DIMENSION
+# ======================
+def checkImageDimension(path: Path) -> bool:
+    try:
+        with Image.open(path) as img:
+            return img.size == (dimension, dimension)
+    except Exception as e:
+        print(f"❌ ERROR IMAGE | {path.name} | {e}")
+        return False
+
 
 # ======================
 # FIND IMAGE ANYWHERE
@@ -71,14 +102,18 @@ for item in metadata:
 
     found_file = find_image_anywhere(filename)
 
+    if not checkImageDimension(found_file):
+        logger.warning(f"⚠️ SKIP SIZE | {found_file.name} | not {dimension}x{dimension}")
+        continue
+
     if not found_file:
-        print(f"❌ MISSING | {filename}")
+        logger.error(f"❌ MISSING | {filename}")
         missing += 1
         continue
 
     # jika sudah di folder yang benar
     if found_file.parent.name == target_type:
-        print(f"✔ OK | {target_type}/{found_file.name}")
+        logger.info(f"✔ OK | {target_type}/{found_file.name}")
         already_ok += 1
         continue
 
@@ -86,17 +121,17 @@ for item in metadata:
     destination = target_dir / found_file.name
 
     if destination.exists():
-        print(f"⚠️ SKIP (exists) | {destination}")
+        logger.warning(f"⚠️ SKIP (exists) | {destination}")
         continue
 
     shutil.move(str(found_file), str(destination))
-    print(f"➡️ MOVED | {found_file} → {destination}")
+    logger.info(f"➡️ MOVED | {found_file} → {destination}")
     moved += 1
 
 # ======================
 # SUMMARY
 # ======================
-print("\n=== SUMMARY ===")
-print(f"Already OK : {already_ok}")
-print(f"Moved      : {moved}")
-print(f"Missing    : {missing}")
+logger.info("\n=== SUMMARY ===")
+logger.info(f"Already OK : {already_ok}")
+logger.info(f"Moved      : {moved}")
+logger.info(f"Missing    : {missing}")
