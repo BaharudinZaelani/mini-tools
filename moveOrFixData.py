@@ -56,9 +56,17 @@ with open(metadata_json, "r", encoding="utf-8") as f:
 # ======================
 # CHECK IMAGE DIMENSION
 # ======================
-def checkImageDimension(path: Path) -> bool:
-    with Image.open(path) as img:
-        return img.size == (dimension, dimension)
+def checkImageDimension(path: Path | None) -> bool:
+    if path is None or not path.exists():
+        print(f"Warning: Invalid path provided: {path}")
+        return False
+    
+    try:
+        with Image.open(path) as img:
+            return img.size == (dimension, dimension)
+    except Exception as e:
+        print(f"Error processing image {path}: {e}")
+        return False
 
 # ======================
 # FIND IMAGE ANYWHERE
@@ -97,7 +105,7 @@ for item in metadata:
 
     found_file = find_image_anywhere(filename)
 
-    if not checkImageDimension(found_file):
+    if found_file is not None and not checkImageDimension(found_file):
         logger.warning(f"⚠️ SKIP SIZE | {found_file.name} | not {dimension}x{dimension}")
         continue
 
