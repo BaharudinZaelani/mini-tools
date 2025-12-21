@@ -9,7 +9,7 @@ from PIL import Image
 # PATH SETUP
 # ======================
 base_dir = Path("/content/mini-tools/dataset")
-metadata_json = base_dir / "logs/data.json"
+metadata_json = base_dir / "logs/metadata.json"
 dataset_folders = ["training", "testing", "validation"]
 dimension = 1024
 
