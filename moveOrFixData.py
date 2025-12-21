@@ -122,12 +122,14 @@ for item in metadata:
         continue
 
     # pindahkan file
+    destination = target_dir / found_file.name
+
     wrong_dir = base_dir / "wrong"
     wrong_dir.mkdir(exist_ok=True)
-    destination = target_dir / found_file.name
-    if wrong_dir.exists():
+    destination_wrong = wrong_dir / found_file.name
+    if destination_wrong.exists():
         logger.info(f"⚠️ SKIP (exists) | {destination}")
-        shutil.move(str(found_file), str(wrong_dir))
+        shutil.move(str(found_file), str(destination_wrong))
         wrong += 1
         continue
 
