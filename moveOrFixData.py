@@ -57,13 +57,8 @@ with open(metadata_json, "r", encoding="utf-8") as f:
 # CHECK IMAGE DIMENSION
 # ======================
 def checkImageDimension(path: Path) -> bool:
-    try:
-        with Image.open(path) as img:
-            return img.size == (dimension, dimension)
-    except Exception as e:
-        print(f"❌ ERROR IMAGE | {path.name} | {e}")
-        return False
-
+    with Image.open(path) as img:
+        return img.size == (dimension, dimension)
 
 # ======================
 # FIND IMAGE ANYWHERE
