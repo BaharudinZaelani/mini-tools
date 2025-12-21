@@ -106,8 +106,13 @@ for item in metadata:
 
     found_file = find_image_anywhere(filename)
 
+    wrong_dir = base_dir / "wrong"
+    wrong_dir.mkdir(exist_ok=True)
+    destination_wrong = wrong_dir / found_file.name
     if found_file is not None and not checkImageDimension(found_file):
         logger.info(f"⚠️ SKIP SIZE | {found_file.name} | not {dimension}x{dimension}")
+        shutil.move(str(found_file), str(destination_wrong))
+        wrong += 1
         continue
 
     if not found_file:
@@ -124,13 +129,8 @@ for item in metadata:
     # pindahkan file
     destination = target_dir / found_file.name
 
-    wrong_dir = base_dir / "wrong"
-    wrong_dir.mkdir(exist_ok=True)
-    destination_wrong = wrong_dir / found_file.name
-    if destination_wrong.exists():
+    if destination.exists():
         logger.info(f"⚠️ SKIP (exists) | {destination}")
-        shutil.move(str(found_file), str(destination_wrong))
-        wrong += 1
         continue
 
     shutil.move(str(found_file), str(destination))
