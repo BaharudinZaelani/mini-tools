@@ -106,11 +106,11 @@ for item in metadata:
     found_file = find_image_anywhere(filename)
 
     if found_file is not None and not checkImageDimension(found_file):
-        logger.warning(f"⚠️ SKIP SIZE | {found_file.name} | not {dimension}x{dimension}")
+        logger.info(f"⚠️ SKIP SIZE | {found_file.name} | not {dimension}x{dimension}")
         continue
 
     if not found_file:
-        logger.error(f"❌ MISSING | {filename}")
+        logger.info(f"❌ MISSING | {filename}")
         missing += 1
         continue
 
@@ -124,7 +124,7 @@ for item in metadata:
     destination = target_dir / found_file.name
 
     if destination.exists():
-        logger.warning(f"⚠️ SKIP (exists) | {destination}")
+        logger.info(f"⚠️ SKIP (exists) | {destination}")
         continue
 
     shutil.move(str(found_file), str(destination))
