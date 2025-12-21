@@ -109,7 +109,7 @@ for item in metadata:
     wrong_dir = base_dir / "wrong"
     wrong_dir.mkdir(exist_ok=True)
     if found_file is not None and not checkImageDimension(found_file):
-        logger.info(f"⚠️ SKIP SIZE | {found_file.name} | not {dimension}x{dimension}")
+        logger.info(f"⚠️ WRONG SIZE | {found_file.name} | not {dimension}x{dimension} | Moved To {found_file} → {wrong_dir / found_file.name}")
         shutil.move(str(found_file), str(wrong_dir))
         wrong += 1
         continue
