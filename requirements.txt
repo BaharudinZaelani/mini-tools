@@ -6,4 +6,3 @@ pandas
 openpyxl
 xlrd
 Image
-tempfile
