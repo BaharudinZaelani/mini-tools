@@ -225,7 +225,7 @@ def process_dir(input_dir, output_dir):
         # Check orientation & rotate
         # ==========================
         img = Image.open(in_path)
-        img = ImageOps.exif_transpose(img)  # handle EXIF orientation
+        img = ImageOps.exif_transpose(img) 
 
         if img.height > img.width:
             print(f"🔄 Portrait detected → rotating: {f}")
