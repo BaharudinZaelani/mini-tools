@@ -224,7 +224,7 @@ def process_dir(input_dir, output_dir):
         # ==========================
         # Check orientation & rotate
         # ==========================
-        rotated_dir = os.path.join(in_path, "rotated")
+        rotated_dir = os.path.join(input_dir, "rotated")
         os.makedirs(rotated_dir, exist_ok=True)
         rotated_path = os.path.join(rotated_dir, f)
 
