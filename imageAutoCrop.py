@@ -224,12 +224,17 @@ def process_dir(input_dir, output_dir):
         # ==========================
         # Check orientation & rotate
         # ==========================
+        rotated_dir = os.path.join(in_path, "rotated")
+        os.makedirs(rotated_dir, exist_ok=True)
+        rotated_path = os.path.join(rotated_dir, f)
+
         img = Image.open(in_path)
-        img = ImageOps.exif_transpose(img) 
+        img = ImageOps.exif_transpose(img)
 
         if img.height > img.width:
             print(f"🔄 Portrait detected → rotating: {f}")
             img = img.rotate(90, expand=True)
+            img.save(rotated_path)
 
         # Simpan ke file sementara
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
