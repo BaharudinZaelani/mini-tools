@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 import piexif
+import tempfile
 from PIL import Image
 
 # ==========================
@@ -12,7 +13,6 @@ def calculate_solidity(contour):
     hull = cv2.convexHull(contour)
     hull_area = cv2.contourArea(hull)
     return area / hull_area if hull_area > 0 else 0
-
 
 def preserve_metadata(original_path, new_image):
     try:
@@ -30,7 +30,6 @@ def preserve_metadata(original_path, new_image):
         print(f"⚠️ Tidak bisa mempertahankan metadata: {e}")
         new_image_rgb = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
         return Image.fromarray(new_image_rgb), None
-
 
 # ==========================
 # Smart detection functions
@@ -91,7 +90,6 @@ def detect_board_smart(image):
         return rect
     return None
 
-
 def detect_chicken_direction(image, board_rect):
     """
     Analisa distribusi tekstur (edge density) di sekitar papan
@@ -114,7 +112,6 @@ def detect_chicken_direction(image, board_rect):
     scores = {k: np.sum(v > 0) / (v.size + 1) for k, v in regions.items()}
     direction = max(scores, key=scores.get)
     return direction
-
 
 # ==========================
 # Core crop logic
@@ -190,6 +187,21 @@ def auto_crop(input_path, output_path):
     print(f"💾 Saved: {os.path.basename(output_path)} ({TARGET_SIZE}x{TARGET_SIZE})")
     print("---")
 
+def ensure_landscape(image_path, output_path=None):
+    img = Image.open(image_path)
+    width, height = img.size
+
+    # Cek orientasi
+    if height > width:
+        print("Portrait detected → rotating...")
+        img = img.rotate(90, expand=True)
+    else:
+        print("Already landscape")
+
+    if output_path:
+        img.save(output_path)
+
+    return img
 
 
 # ==========================
@@ -197,8 +209,10 @@ def auto_crop(input_path, output_path):
 # ==========================
 def process_dir(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
-    files = [f for f in os.listdir(input_dir)
-             if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    files = [
+        f for f in os.listdir(input_dir)
+            if f.lower().endswith(('.jpg', '.jpeg', '.png'))
+    ]
 
     total = len(files)
     print(f"🧩 Processing {total} files...")
@@ -206,12 +220,34 @@ def process_dir(input_dir, output_dir):
     for i, f in enumerate(files, 1):
         in_path = os.path.join(input_dir, f)
         out_path = os.path.join(output_dir, f)
-        auto_crop(in_path, out_path)
+
+        # ==========================
+        # Check orientation & rotate
+        # ==========================
+        img = Image.open(in_path)
+        img = ImageOps.exif_transpose(img)  # handle EXIF orientation
+
+        if img.height > img.width:
+            print(f"🔄 Portrait detected → rotating: {f}")
+            img = img.rotate(90, expand=True)
+
+        # Simpan ke file sementara
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+            temp_path = tmp.name
+            img.save(temp_path, quality=95)
+
+        # ==========================
+        # Start Cropping
+        # ==========================
+        auto_crop(temp_path, out_path)
+
+        # Hapus file sementara
+        os.remove(temp_path)
+
         if i % 10 == 0:
             print(f"📦 Progress: {i}/{total}")
 
     print(f"✅ Done. Total: {total} files.")
-
 
 # ==========================
 # Entry point
