@@ -211,7 +211,7 @@ def process_dir(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     files = [
         f for f in os.listdir(input_dir)
-            if f.lower().endswith(('.jpg', '.jpeg', '.png'))
+        if f.lower().endswith(('.jpg', '.jpeg', '.png'))
     ]
 
     total = len(files)
@@ -224,19 +224,24 @@ def process_dir(input_dir, output_dir):
         # ==========================
         # Check orientation & rotate
         # ==========================
-        rotated_dir = os.path.join(input_dir, "rotated")
-        os.makedirs(rotated_dir, exist_ok=True)
-        rotated_path = os.path.join(rotated_dir, f)
-
         img = Image.open(in_path)
         img = ImageOps.exif_transpose(img)
 
+        rotated = False
         if img.height > img.width:
             print(f"🔄 Portrait detected → rotating: {f}")
             img = img.rotate(90, expand=True)
-            img.save(rotated_path)
+            rotated = True
 
-        # Simpan ke file sementara
+        # ==========================
+        # OVERWRITE SOURCE IMAGE
+        # ==========================
+        if rotated:
+            img.save(in_path, quality=95)
+
+        # ==========================
+        # Temporary file for cropping
+        # ==========================
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
             temp_path = tmp.name
             img.save(temp_path, quality=95)
@@ -246,7 +251,6 @@ def process_dir(input_dir, output_dir):
         # ==========================
         auto_crop(temp_path, out_path)
 
-        # Hapus file sementara
         os.remove(temp_path)
 
         if i % 10 == 0:
