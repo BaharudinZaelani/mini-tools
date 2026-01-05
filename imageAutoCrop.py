@@ -3,7 +3,7 @@ import numpy as np
 import os
 import piexif
 import tempfile
-from PIL import Image
+from PIL import Image, ImageOps
 
 # ==========================
 # Utility & helper
