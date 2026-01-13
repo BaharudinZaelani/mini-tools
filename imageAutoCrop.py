@@ -4,7 +4,6 @@ import os
 import tempfile
 import piexif
 import subprocess
-import exiftool
 from PIL import Image, ImageOps
 
 # ==========================
@@ -239,4 +238,10 @@ def process_dir(input_dir, output_dir):
 # Entry
 # ==========================
 if __name__ == "__main__":
+    try:
+        import piexif
+    except ImportError:
+        print("📦 Installing required package: piexif")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "piexif"])
+        import piexif
     process_dir("input", "output")
