@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 import tempfile
+import piexif
 import subprocess
 from PIL import Image, ImageOps
 
@@ -81,9 +82,9 @@ def detect_chicken_direction(image, board_rect):
     return max(scores, key=scores.get)
 
 # ==========================
-# Core crop
+# Core crop (DIMODIFIKASI untuk pertahankan metadata)
 # ==========================
-def auto_crop(input_path, output_path):
+def auto_crop(input_path, output_path, exif_bytes=None):
     TARGET_SIZE = 1024
 
     if os.path.exists(output_path):
@@ -120,24 +121,38 @@ def auto_crop(input_path, output_path):
 
     resized = cv2.resize(crop, (TARGET_SIZE, TARGET_SIZE), cv2.INTER_LANCZOS4)
 
+    # Konversi ke PIL Image dan simpan dengan metadata
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-    Image.fromarray(rgb).save(
-        output_path,
-        "JPEG",
-        quality=95,
-        subsampling=0
-    )
-
+    pil_img = Image.fromarray(rgb)
+    
+    # Simpan dengan metadata jika ada
+    save_kwargs = {
+        "format": "JPEG",
+        "quality": 95,
+        "subsampling": 0
+    }
+    
+    if exif_bytes:
+        try:
+            # Update Orientation tag ke normal (1) karena sudah di-rotate
+            exif_dict = piexif.load(exif_bytes)
+            exif_dict["0th"][piexif.ImageIFD.Orientation] = 1
+            exif_bytes = piexif.dump(exif_dict)
+            save_kwargs["exif"] = exif_bytes
+        except Exception as e:
+            print(f"⚠️ Gagal memproses EXIF: {e}")
+    
+    pil_img.save(output_path, **save_kwargs)
     print(f"💾 Saved: {os.path.basename(output_path)}")
 
 # ==========================
-# Batch processing (SAFE)
+# Batch processing (DIPERBAIKI)
 # ==========================
 def process_dir(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     files = [f for f in os.listdir(input_dir)
-            if f.lower().endswith((".jpg", ".jpeg"))]
+            if f.lower().endswith((".jpg", ".jpeg", ".png"))]
 
     print(f"🧩 Processing {len(files)} files...")
 
@@ -145,41 +160,75 @@ def process_dir(input_dir, output_dir):
         in_path = os.path.join(input_dir, f)
         out_path = os.path.join(output_dir, f)
 
-        # Load & orient (RAM ONLY)
-        img = Image.open(in_path)
-        img = ImageOps.exif_transpose(img)
-
-        if img.height > img.width:
-            img = img.rotate(90, expand=True)
-
-        # Save TEMP (no overwrite source)
-        exif = img.info.get("exif")
-        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-            temp_path = tmp.name
-
-            save_kwargs = {
-                "format": "JPEG",
-                "quality": 95,
-                "subsampling": 0
-            }
-
-            if exif is not None:
-                save_kwargs["exif"] = exif
-
-            img.save(temp_path, **save_kwargs)
-
-
-        auto_crop(temp_path, out_path)
+        # Buka file dan ekstrak metadata SEBELUM modifikasi apapun
+        try:
+            # Ekstrak EXIF dari file asli
+            with Image.open(in_path) as img:
+                # Ekstrak metadata
+                exif_bytes = img.info.get("exif")
+                
+                # Jika tidak ada EXIF, coba ambil dengan piexif
+                if exif_bytes is None:
+                    try:
+                        exif_bytes = piexif.load(img.info.get("exif", b""))
+                        exif_bytes = piexif.dump(exif_bytes) if exif_bytes else None
+                    except:
+                        exif_bytes = None
+                
+                # Lakukan rotasi jika diperlukan (di memori saja)
+                img = ImageOps.exif_transpose(img)
+                
+                # Rotasi 90 derajat jika tinggi > lebar
+                if img.height > img.width:
+                    img = img.rotate(90, expand=True, resample=Image.BICUBIC)
+                
+                # Simpan ke file sementara dengan metadata
+                with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                    temp_path = tmp.name
+                    
+                    save_kwargs = {
+                        "format": "JPEG",
+                        "quality": 95,
+                        "subsampling": 0
+                    }
+                    
+                    # Jika ada EXIF, update orientation ke normal
+                    if exif_bytes:
+                        try:
+                            exif_dict = piexif.load(exif_bytes)
+                            exif_dict["0th"][piexif.ImageIFD.Orientation] = 1
+                            exif_bytes = piexif.dump(exif_dict)
+                            save_kwargs["exif"] = exif_bytes
+                        except:
+                            # Jika gagal update EXIF, gunakan asli
+                            save_kwargs["exif"] = exif_bytes
+                    
+                    img.save(temp_path, **save_kwargs)
+        
+        except Exception as e:
+            print(f"⚠️ Error processing {f}: {e}")
+            continue
+        
+        # Lakukan cropping dengan metadata yang sudah disiapkan
+        auto_crop(temp_path, out_path, exif_bytes)
+        
+        # Hapus file sementara
         os.remove(temp_path)
-
-        subprocess.run([
-            "exiftool",
-            "-overwrite_original",
-            "-TagsFromFile", in_path,
-            "-all:all",
-            out_path
-        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
+        
+        # Backup: gunakan exiftool jika metadata masih hilang
+        if not exif_bytes:
+            try:
+                subprocess.run([
+                    "exiftool",
+                    "-overwrite_original",
+                    "-TagsFromFile", in_path,
+                    "-all:all",
+                    "-Orientation=1",  # Reset orientation
+                    out_path
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            except Exception as e:
+                print(f"⚠️ Exiftool error untuk {f}: {e}")
+        
         if i % 10 == 0:
             print(f"📦 Progress: {i}/{len(files)}")
 
