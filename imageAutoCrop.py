@@ -209,9 +209,10 @@ def ensure_landscape(image_path, output_path=None):
 # ==========================
 def process_dir(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
+
     files = [
         f for f in os.listdir(input_dir)
-        if f.lower().endswith(('.jpg', '.jpeg', '.png'))
+        if f.lower().endswith(('.jpg', '.jpeg'))
     ]
 
     total = len(files)
@@ -222,42 +223,56 @@ def process_dir(input_dir, output_dir):
         out_path = os.path.join(output_dir, f)
 
         # ==========================
-        # Check orientation & rotate
+        # Load image (NO overwrite)
         # ==========================
         img = Image.open(in_path)
+
+        # Apply EXIF orientation safely (RAM only)
         img = ImageOps.exif_transpose(img)
 
-        rotated = False
+        # Rotate if portrait
         if img.height > img.width:
-            print(f"🔄 Portrait detected → rotating: {f}")
+            print(f"🔄 Portrait → rotate 90°: {f}")
             img = img.rotate(90, expand=True)
-            rotated = True
 
         # ==========================
-        # OVERWRITE SOURCE IMAGE
+        # Save TEMP with EXIF
         # ==========================
-        if rotated:
-            img.save(in_path, quality=95)
+        exif = img.info.get("exif")
 
-        # ==========================
-        # Temporary file for cropping
-        # ==========================
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
             temp_path = tmp.name
-            img.save(temp_path, quality=95)
+            img.save(
+                temp_path,
+                format="JPEG",
+                quality=95,
+                subsampling=0,
+                exif=exif
+            )
 
         # ==========================
-        # Start Cropping
+        # Auto crop (OpenCV)
         # ==========================
         auto_crop(temp_path, out_path)
 
         os.remove(temp_path)
 
+        # ==========================
+        # FIX 3 — COPY FULL METADATA
+        # ==========================
+        subprocess.run([
+            "exiftool",
+            "-overwrite_original",
+            "-TagsFromFile", in_path,
+            "-all:all",
+            out_path
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
         if i % 10 == 0:
             print(f"📦 Progress: {i}/{total}")
 
     print(f"✅ Done. Total: {total} files.")
-
+    
 # ==========================
 # Entry point
 # ==========================
