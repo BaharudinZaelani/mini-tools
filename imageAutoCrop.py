@@ -117,6 +117,9 @@ def detect_chicken_direction(image, board_rect):
 # Core crop logic
 # ==========================
 def auto_crop(input_path, output_path):
+    # Target output size
+    TARGET_SIZE = 1024
+
     # Skip jika sudah ada file output
     if os.path.exists(output_path):
         print(f"⏭️ Skip (sudah ada): {os.path.basename(output_path)}")
@@ -128,9 +131,6 @@ def auto_crop(input_path, output_path):
         return
 
     h_img, w_img = img.shape[:2]
-
-    # Target output size
-    TARGET_SIZE = 1024
 
     # Deteksi papan
     board_rect = detect_board_smart(img)
@@ -159,7 +159,6 @@ def auto_crop(input_path, output_path):
 
         crop = img[y1:y1 + size, x1:x1 + size]
 
-    # Resize ke 1024x1024 (high quality)
     resized = cv2.resize(
         crop,
         (TARGET_SIZE, TARGET_SIZE),
@@ -189,6 +188,7 @@ def auto_crop(input_path, output_path):
 
 def ensure_landscape(image_path, output_path=None):
     img = Image.open(image_path)
+    img = ImageOps.exif_transpose(img)
     width, height = img.size
 
     # Cek orientasi
