@@ -156,13 +156,18 @@ def process_dir(input_dir, output_dir):
         exif = img.info.get("exif")
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
             temp_path = tmp.name
-            img.save(
-                temp_path,
-                "JPEG",
-                quality=95,
-                subsampling=0,
-                exif=exif
-            )
+
+            save_kwargs = {
+                "format": "JPEG",
+                "quality": 95,
+                "subsampling": 0
+            }
+
+            if exif is not None:
+                save_kwargs["exif"] = exif
+
+            img.save(temp_path, **save_kwargs)
+
 
         auto_crop(temp_path, out_path)
         os.remove(temp_path)
