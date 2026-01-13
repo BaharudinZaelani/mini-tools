@@ -4,6 +4,7 @@ import os
 import tempfile
 import piexif
 import subprocess
+import exiftool
 from PIL import Image, ImageOps
 
 # ==========================
